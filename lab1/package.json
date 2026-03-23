@@ -1,0 +1,26 @@
+{
+  "name": "linear_move",
+  "version": "1.0.0",
+  "description": "laboratory work, that simulates linear move",
+  "keywords": [
+    "three",
+    "js",
+    "node",
+    "simulation",
+    "linear_move"
+  ],
+  "license": "MIT",
+  "author": "Artem Romaniuk",
+  "type": "module",
+  "main": "main.js",
+  "scripts": {
+    "dev": "vite"
+  },
+  "dependencies": {
+    "lil-gui": "^0.21.0",
+    "three": "^0.183.2"
+  },
+  "devDependencies": {
+    "vite": "^8.0.1"
+  }
+}
