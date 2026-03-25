@@ -2,7 +2,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/Addons.js";
 import GUI from "lil-gui";
 
-// Configurations
+// #region Configurations
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(
   75,
@@ -10,7 +10,7 @@ const camera = new THREE.PerspectiveCamera(
   0.1,
   1000,
 );
-camera.position.set(1, 1, 2);
+camera.position.set(5, 7, 10);
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
@@ -29,57 +29,105 @@ document.addEventListener(
   "visibilitychange",
   () => !document.hidden && timer.reset(),
 );
+// #endregion
 
-// Objects
-const axesHelper = new THREE.AxesHelper(10);
+// #region Scene objects
+const axesHelper = new THREE.AxesHelper(12);
 scene.add(axesHelper);
 
-const gridHelper = new THREE.GridHelper(10, 10);
+const gridHelper = new THREE.GridHelper(20, 20);
 scene.add(gridHelper);
 
-const spotLight = new THREE.SpotLight(0xffffff, 1000, 20, Math.PI / 5);
-spotLight.position.set(-5, 10, 5);
-scene.add(spotLight);
-const SpotLightHelper = new THREE.SpotLightHelper(spotLight);
-scene.add(SpotLightHelper);
+// const spotLight = new THREE.SpotLight(0xffffff, 1000, 20, Math.PI / 5);
+// spotLight.position.set(-5, 10, 5);
+// scene.add(spotLight);
+// const SpotLightHelper = new THREE.SpotLightHelper(spotLight);
+// scene.add(SpotLightHelper);
 
-const cube = new THREE.Mesh(
-  new THREE.BoxGeometry(1, 1, 1),
-  new THREE.MeshPhongMaterial({
-    color: "#ffffff",
-  }),
+const sphere = new THREE.Mesh(
+  new THREE.SphereGeometry(0.5),
+  new THREE.MeshBasicMaterial({ color: 0xffffff }),
 );
-scene.add(cube);
+scene.add(sphere);
 
-// GUI and options
+const arrowHelper = new THREE.ArrowHelper();
+arrowHelper.setColor("red");
+arrowHelper.scale.set(5, 1, 5);
+sphere.add(arrowHelper);
+// #endregion
+
+// #region Options and GUI
 const options = {
   isPlaying: false,
   direction: 1,
+  rotationX: 0,
+  rotationY: 0,
+  rotationZ: 0,
+  speed: 1,
+  acceleration: 0,
+  time: 0,
 
   play() {
     this.isPlaying = !this.isPlaying;
     playBtn.name(options.isPlaying ? "Pause" : "Play");
   },
   reset() {
-    cube.position.set(0, 0, 0);
+    sphere.position.set(0, 0, 0);
+    sphere.rotation.set(0, 0, 0);
+    controllerRotationX.reset();
+    controllerRotationY.reset();
+    controllerRotationZ.reset();
+    this.speed = 1;
+    this.acceleration = 0;
+    this.time = 0;
+    contollerTime.reset();
   },
 };
 
 const gui = new GUI();
 gui.title("Options");
+gui.add(sphere.position, "x", -10, 10).listen();
+gui.add(sphere.position, "y", -10, 10).listen();
+gui.add(sphere.position, "z", -10, 10).listen();
+const controllerRotationX = gui
+  .add(options, "rotationX", 0, 360)
+  .onChange((value) => {
+    sphere.rotation.x = THREE.MathUtils.degToRad(value);
+  })
+  .name("rotation X");
+const controllerRotationY = gui
+  .add(options, "rotationY", 0, 360)
+  .onChange((value) => {
+    sphere.rotation.y = THREE.MathUtils.degToRad(value);
+  })
+  .name("rotation Y");
+const controllerRotationZ = gui
+  .add(options, "rotationZ", 0, 360)
+  .onChange((value) => {
+    sphere.rotation.z = THREE.MathUtils.degToRad(value);
+  })
+  .name("rotation Z");
+gui.add(options, "speed", 0, 10).listen();
+gui.add(options, "acceleration", -10, 10).listen();
+const contollerTime = gui.add(options, "time").listen().disable().decimals(2);
+
 const playBtn = gui.add(options, "play").name("Play");
 gui.add(options, "reset").name("Reset");
+// #endregion
 
-// Time loop
+// #region Time loop
 renderer.setAnimationLoop((time) => {
   timer.update(time);
+  const direction = new THREE.Vector3();
+  sphere.getWorldDirection(direction);
+  const delta = timer.getDelta();
 
   if (options.isPlaying) {
-    cube.position.x += timer.getDelta() * options.direction;
-
-    if (cube.position.x > 3) options.direction = -1;
-    if (cube.position.x < -3) options.direction = 1;
+    options.speed += options.acceleration * delta;
+    sphere.position.addScaledVector(direction, delta * options.speed);
+    options.time += delta;
   }
 
   renderer.render(scene, camera);
 });
+// #endregion
