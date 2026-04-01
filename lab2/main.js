@@ -49,6 +49,7 @@ const sphere = new THREE.Mesh(
   new THREE.MeshBasicMaterial({ color: 0xffffff }),
 );
 scene.add(sphere);
+sphere.rotation.order = "YXZ";
 
 const arrowHelper = new THREE.ArrowHelper();
 arrowHelper.setColor("red");
@@ -63,7 +64,8 @@ const options = {
   rotationX: 0,
   rotationY: 0,
   rotationZ: 0,
-  speed: 1,
+  horizontalSpeed: 1,
+  verticalSpeed: 0,
   acceleration: 0,
   g: 9.8,
   time: 0,
@@ -78,7 +80,8 @@ const options = {
     controllerRotationX.reset();
     controllerRotationY.reset();
     controllerRotationZ.reset();
-    this.speed = 1;
+    this.horizontalSpeed = 1;
+    this.verticalSpeed = 0;
     this.acceleration = 0;
     this.g = 9.8;
     this.time = 0;
@@ -115,7 +118,16 @@ const controllerRotationZ = gui
     sphere.rotation.z = THREE.MathUtils.degToRad(value);
   })
   .name("rotation Z");
-gui.add(options, "speed", -10, 10).decimals(2).listen();
+gui
+  .add(options, "horizontalSpeed", -10, 10)
+  .name("horizontal speed")
+  .decimals(2)
+  .listen();
+gui
+  .add(options, "verticalSpeed", -10, 10)
+  .name("vertical speed")
+  .decimals(2)
+  .listen();
 gui.add(options, "acceleration", -10, 10).decimals(2).listen();
 gui.add(options, "g", -15, 15).decimals(2).listen();
 const contollerTime = gui.add(options, "time").listen().disable().decimals(2);
@@ -155,18 +167,25 @@ const updateTrajectoryVisualization = () => {
 // #region Time loop
 renderer.setAnimationLoop((time) => {
   timer.update(time);
-  const direction = new THREE.Vector3();
-  sphere.getWorldDirection(direction);
   const delta = timer.getDelta();
 
   if (options.isPlaying) {
     trajectory.push(sphere.position.clone());
     if (trajectory.length % 10 === 0) updateTrajectoryVisualization();
-    sphere.position.addScaledVector(direction, delta * options.speed);
+
+    const direction = new THREE.Vector3();
+    sphere.getWorldDirection(direction);
+    direction.y = 0;
+    // console.log(direction);
+
+    options.horizontalSpeed += options.acceleration * delta;
+    sphere.position.addScaledVector(direction, delta * options.horizontalSpeed);
+
+    options.verticalSpeed -= options.g * delta;
+    sphere.position.y += options.verticalSpeed * delta;
 
     options.time += delta;
   }
-
   renderer.render(scene, camera);
 });
 // #endregion
