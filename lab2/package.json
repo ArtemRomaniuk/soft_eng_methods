@@ -1,0 +1,26 @@
+{
+  "name": "throwing_the_body_at_an_angle_to_the_horizon",
+  "version": "1.0.0",
+  "description": "laboratory work, that simulates throwing move",
+  "keywords": [
+    "three",
+    "js",
+    "node",
+    "simulation",
+    "throwing"
+  ],
+  "license": "MIT",
+  "author": "Artem Romaniuk",
+  "type": "module",
+  "main": "main.js",
+  "scripts": {
+    "dev": "vite"
+  },
+  "dependencies": {
+    "lil-gui": "^0.21.0",
+    "three": "^0.183.2"
+  },
+  "devDependencies": {
+    "vite": "^8.0.1"
+  }
+}

@@ -65,6 +65,7 @@ const options = {
   rotationZ: 0,
   speed: 1,
   acceleration: 0,
+  g: 9.8,
   time: 0,
 
   play() {
@@ -79,40 +80,76 @@ const options = {
     controllerRotationZ.reset();
     this.speed = 1;
     this.acceleration = 0;
+    this.g = 9.8;
     this.time = 0;
     contollerTime.reset();
+
+    trajectory = [];
+    updateTrajectoryVisualization();
   },
 };
 
 const gui = new GUI();
 gui.title("Options");
-gui.add(sphere.position, "x", -10, 10).listen();
-gui.add(sphere.position, "y", -10, 10).listen();
-gui.add(sphere.position, "z", -10, 10).listen();
+gui.add(sphere.position, "x", -10, 10).decimals(2).listen();
+gui.add(sphere.position, "y", -10, 10).decimals(2).listen();
+gui.add(sphere.position, "z", -10, 10).decimals(2).listen();
 const controllerRotationX = gui
   .add(options, "rotationX", 0, 360)
+  .decimals(2)
   .onChange((value) => {
     sphere.rotation.x = THREE.MathUtils.degToRad(value);
   })
   .name("rotation X");
 const controllerRotationY = gui
   .add(options, "rotationY", 0, 360)
+  .decimals(2)
   .onChange((value) => {
     sphere.rotation.y = THREE.MathUtils.degToRad(value);
   })
   .name("rotation Y");
 const controllerRotationZ = gui
   .add(options, "rotationZ", 0, 360)
+  .decimals(2)
   .onChange((value) => {
     sphere.rotation.z = THREE.MathUtils.degToRad(value);
   })
   .name("rotation Z");
-gui.add(options, "speed", -10, 10).listen();
-gui.add(options, "acceleration", -10, 10).listen();
+gui.add(options, "speed", -10, 10).decimals(2).listen();
+gui.add(options, "acceleration", -10, 10).decimals(2).listen();
+gui.add(options, "g", -15, 15).decimals(2).listen();
 const contollerTime = gui.add(options, "time").listen().disable().decimals(2);
 
 const playBtn = gui.add(options, "play").name("Play");
 gui.add(options, "reset").name("Reset");
+// #endregion
+
+// #region Trajectory
+let trajectory = [];
+let trajectoryLine = null;
+
+const updateTrajectoryVisualization = () => {
+  if (trajectoryLine) {
+    scene.remove(trajectoryLine);
+    trajectoryLine.geometry.dispose();
+    trajectoryLine.material.dispose();
+  }
+
+  if (trajectory.length > 1) {
+    const points = trajectory.map(
+      (pos) => new THREE.Vector3(pos.x, pos.y, pos.z),
+    );
+
+    trajectoryLine = new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints(points),
+      new THREE.LineBasicMaterial({
+        color: "red",
+        linewidth: 2,
+      }),
+    );
+    scene.add(trajectoryLine);
+  }
+};
 // #endregion
 
 // #region Time loop
@@ -123,8 +160,10 @@ renderer.setAnimationLoop((time) => {
   const delta = timer.getDelta();
 
   if (options.isPlaying) {
-    options.speed += options.acceleration * delta;
+    trajectory.push(sphere.position.clone());
+    if (trajectory.length % 10 === 0) updateTrajectoryVisualization();
     sphere.position.addScaledVector(direction, delta * options.speed);
+
     options.time += delta;
   }
 
