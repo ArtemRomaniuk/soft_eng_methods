@@ -2,7 +2,7 @@ import { useState } from "react";
 import "./App.css";
 import TabNav from "@components/Tab";
 import InputPanel from "@components/InputPanel";
-import DPTable from "@components/DPTable";
+import DPViz from "@components/DPViz/DPViz";
 import BruteForceViz from "@components/BruteForceViz/BruteForceViz";
 import RecursiveViz from "@components/RecursiveViz/RecursiveViz";
 import GreedyViz from "@components/GreedyViz/GreedyViz";
@@ -42,7 +42,7 @@ export default function App() {
       case 2:
         return <RecursiveViz {...props} />;
       case 3:
-        return <DPTable {...props} />;
+        return <DPViz {...props} />;
       case 4:
         return <GreedyViz {...props} />;
       case 5:
