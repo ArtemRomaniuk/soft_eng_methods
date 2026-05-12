@@ -3,6 +3,10 @@ import "./App.css";
 import TabNav from "@components/Tab";
 import InputPanel from "@components/InputPanel";
 import DPTable from "@components/DPTable";
+import BruteForceViz from "@components/BruteForceViz/BruteForceViz";
+import RecursiveViz from "@components/RecursiveViz/RecursiveViz";
+import GreedyViz from "@components/GreedyViz/GreedyViz";
+import BranchAndBoundViz from "@components/BranchAndBoundViz/BranchAndBoundViz";
 
 const TAB_CONTENT = [
   { id: 1, label: "Brute force", name: "bruteForce" },
@@ -13,7 +17,7 @@ const TAB_CONTENT = [
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState(1);
+  const [activeTab, setActiveTab] = useState(3);
   const [capacity, setCapacity] = useState("19");
   const [weights, setWeights] = useState("6, 8, 7, 1, 10, 9, 5, 3, 2");
   const [values, setValues] = useState("3, 7, 13, 4, 11, 13, 8, 10, 9");
@@ -28,6 +32,24 @@ export default function App() {
 
   const handleValuesChange = (e) => {
     setValues(e.target.value);
+  };
+
+  const renderVisualization = () => {
+    const props = { weights, values, capacity };
+    switch (activeTab) {
+      case 1:
+        return <BruteForceViz {...props} />;
+      case 2:
+        return <RecursiveViz {...props} />;
+      case 3:
+        return <DPTable {...props} />;
+      case 4:
+        return <GreedyViz {...props} />;
+      case 5:
+        return <BranchAndBoundViz {...props} />;
+      default:
+        return null;
+    }
   };
 
   return (
@@ -58,9 +80,7 @@ export default function App() {
           handleValuesChange={handleValuesChange}
         />
 
-        <div className="visualization-panel">
-          <DPTable weights={weights} values={values} capacity={capacity} />
-        </div>
+        <div className="visualization-panel">{renderVisualization()}</div>
       </main>
     </div>
   );
