@@ -10,10 +10,8 @@ export default function recursive(weights, values, capacity) {
       };
     }
 
-    // Option 1: Skip
     const resSkip = solve(i + 1, cap);
 
-    // Option 2: Take
     let resTake = { value: -1, items: [], tree: null };
     if (weights[i] <= cap) {
       resTake = solve(i + 1, cap - weights[i]);
@@ -45,12 +43,10 @@ export default function recursive(weights, values, capacity) {
 
   const result = solve(0, capacity);
 
-  // Mark the best path throughout the tree
   function markPath(node, isBest) {
     node.isBest = isBest;
     if (node.children) {
       node.children.forEach((child) => {
-        // Child is best if it was marked as the choice and its parent is also part of the best path
         markPath(child, isBest && child.isBest);
       });
     }

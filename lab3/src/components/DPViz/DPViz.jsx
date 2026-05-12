@@ -54,7 +54,7 @@ export default function DPViz({ weights, values, capacity }) {
       const { dp: table, maxValue } = dp(finalW, finalV, cap);
       const n = finalW.length;
 
-      // Reconstruct path for highlighting
+      
       const path = [];
       let currW = cap;
       for (let i = n; i > 0; i--) {
@@ -91,7 +91,7 @@ export default function DPViz({ weights, values, capacity }) {
       .append("g")
       .attr("transform", `translate(${MARGIN}, ${MARGIN})`);
 
-    // Headers
+    
     g.append("text")
       .attr("x", HEADER_WIDTH + ((parsedCapacity + 1) * CELL_SIZE) / 2)
       .attr("y", -15)
@@ -158,7 +158,7 @@ export default function DPViz({ weights, values, capacity }) {
       }
     }
 
-    // Cells
+    
     const cellsGroup = g.append("g").attr("class", "cells");
     const CELL_ANIMATION_DURATION = 30;
     const TOTAL_CELLS = (n + 1) * (parsedCapacity + 1);
@@ -199,7 +199,7 @@ export default function DPViz({ weights, values, capacity }) {
       }
     }
 
-    // Path
+    
     const PATH_DELAY = TOTAL_CELLS * CELL_ANIMATION_DURATION + 300;
     path.forEach((p, idx) => {
       d3.select(`#cell-${p.i}-${p.w} rect`)

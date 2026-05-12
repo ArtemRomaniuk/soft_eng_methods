@@ -59,7 +59,7 @@ export default function RecursiveViz({ weights, values, capacity }) {
 
     svg.attr("width", width).attr("height", height);
 
-    // Links
+    
     const links = g.selectAll(".link")
       .data(root.links())
       .enter()
@@ -73,7 +73,7 @@ export default function RecursiveViz({ weights, values, capacity }) {
 
     links.transition().delay((d, i) => i * 5).duration(300).style("opacity", d => d.target.data.isBest ? 1 : 0.4);
 
-    // Nodes
+    
     const nodes = g.selectAll(".node")
       .data(root.descendants())
       .enter()

@@ -4,7 +4,7 @@ export default function bruteForce(weights, values, capacity) {
   let bestCombination = [];
   const history = [];
 
-  // Generate all 2^n combinations
+  
   for (let i = 0; i < Math.pow(2, n); i++) {
     const currentCombination = [];
     let currentWeight = 0;
@@ -32,10 +32,10 @@ export default function bruteForce(weights, values, capacity) {
     }
   }
 
-  // Mark the best in history
+  
   history.forEach((item) => {
     if (item.value === maxValue && item.combination.length === bestCombination.length) {
-      // Simple check, could be more robust
+      
       const isMatch = item.combination.every((v, idx) => v === bestCombination[idx]);
       if (isMatch) item.isBest = true;
     }

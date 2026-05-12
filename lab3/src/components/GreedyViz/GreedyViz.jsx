@@ -53,7 +53,7 @@ export default function GreedyViz({ weights, values, capacity }) {
     const g = svg.append("g")
                  .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
-    // Draw Column Headers
+    
     const headers = ["Item ID", "Value", "Weight", "V/W Ratio", "Status"];
     const colWidths = [80, 80, 80, 100, 150];
     let xOffset = 0;
@@ -70,7 +70,7 @@ export default function GreedyViz({ weights, values, capacity }) {
       xOffset += colWidths[i];
     });
 
-    // Draw Rows
+    
     steps.forEach((step, i) => {
       const row = g.append("g")
         .attr("transform", `translate(0, ${i * itemHeight})`)

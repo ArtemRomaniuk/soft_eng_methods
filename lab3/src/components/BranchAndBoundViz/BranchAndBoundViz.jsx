@@ -57,7 +57,7 @@ export default function BranchAndBoundViz({ weights, values, capacity }) {
 
     svg.attr("width", width).attr("height", height);
 
-    // Links
+    
     const links = g.selectAll(".link")
       .data(root.links())
       .enter()
@@ -69,7 +69,7 @@ export default function BranchAndBoundViz({ weights, values, capacity }) {
       .attr("d", d3.linkVertical().x(d => d.x).y(d => d.y))
       .style("opacity", 0);
 
-    // Nodes
+    
     const nodes = g.selectAll(".node")
       .data(root.descendants())
       .enter()
@@ -101,7 +101,7 @@ export default function BranchAndBoundViz({ weights, values, capacity }) {
       .attr("x", TEXT_X).attr("y", 28).attr("text-anchor", "middle").attr("fill", "var(--text-tertiary)").style("font-size", "7px")
       .text(d => `V: ${d.data.value}`);
 
-    // ONLY show cross for pruned nodes that are NOT part of the best path
+    
     nodes.filter(d => d.data.isPruned && !d.data.isBest)
       .append("text")
       .attr("x", 12).attr("y", -12).attr("fill", "#ff4d4d").style("font-size", "10px").style("font-weight", "bold")

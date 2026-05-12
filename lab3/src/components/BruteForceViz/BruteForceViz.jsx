@@ -60,7 +60,7 @@ export default function BruteForceViz({ weights, values, capacity }) {
       .domain([0, d3.max(history, d => d.value) * 1.1])
       .range([height, 0]);
 
-    // Axes
+    
     g.append("g")
       .attr("transform", `translate(0, ${height})`)
       .call(d3.axisBottom(xScale))
@@ -79,7 +79,7 @@ export default function BruteForceViz({ weights, values, capacity }) {
       .attr("fill", "var(--text-secondary)")
       .text("Total Value");
 
-    // Grid lines
+    
     g.append("g")
       .attr("class", "grid")
       .attr("opacity", 0.1)
@@ -91,7 +91,7 @@ export default function BruteForceViz({ weights, values, capacity }) {
       .attr("transform", `translate(0, ${height})`)
       .call(d3.axisBottom(xScale).tickSize(-height).tickFormat(""));
 
-    // Plot points
+    
     const dots = g.selectAll(".dot")
       .data(history)
       .enter()
@@ -109,7 +109,7 @@ export default function BruteForceViz({ weights, values, capacity }) {
       .duration(200)
       .attr("r", d => d.isBest ? 6 : 3);
 
-    // Tooltip simulation
+    
     dots.on("mouseover", function(event, d) {
       d3.select(this).attr("r", 8).attr("fill", "#fff");
     }).on("mouseout", function(event, d) {

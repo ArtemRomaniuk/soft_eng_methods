@@ -10,10 +10,10 @@ export default function branchAndBound(weights, values, capacity) {
     });
   }
 
-  // Sort items by ratio (Value/Weight) descending
+  
   const sortedItems = [...items].sort((a, b) => b.ratio - a.ratio);
 
-  // Upper bound function using Fractional Knapsack
+  
   function getBound(level, currentWeight, currentValue) {
     if (currentWeight >= capacity) return 0;
 
@@ -27,7 +27,7 @@ export default function branchAndBound(weights, values, capacity) {
       j++;
     }
 
-    // Add fractional part of next item
+    
     if (j < n) {
       bound += (capacity - totalWeight) * sortedItems[j].ratio;
     }
@@ -38,7 +38,7 @@ export default function branchAndBound(weights, values, capacity) {
   const nodes = [];
   const queue = [];
 
-  // Root node
+  
   const root = {
     level: -1,
     weight: 0,
@@ -60,11 +60,11 @@ export default function branchAndBound(weights, values, capacity) {
   let nodeIdCounter = 1;
 
   while (queue.length > 0) {
-    // Priority Queue: process node with highest bound first
+    
     queue.sort((a, b) => b.bound - a.bound);
     const u = queue.shift();
 
-    // If bound is less than current max, prune it
+    
     if (u.bound <= maxValue) {
       u.isPruned = true;
       continue;
@@ -75,7 +75,7 @@ export default function branchAndBound(weights, values, capacity) {
     const nextLevel = u.level + 1;
     const currentItem = sortedItems[nextLevel];
 
-    // Left child: Take current item
+    
     const leftWeight = u.weight + currentItem.weight;
     const leftValue = u.value + currentItem.value;
     const leftItems = [...u.items, currentItem.id];
@@ -112,11 +112,11 @@ export default function branchAndBound(weights, values, capacity) {
       }
     } else {
       leftNode.isPruned = true;
-      leftNode.bound = 0; // Invalid state
+      leftNode.bound = 0; 
     }
     nodes.push(leftNode);
 
-    // Right child: Skip current item
+    
     const rightBound = getBound(nextLevel, u.weight, u.value);
     const rightNode = {
       level: nextLevel,
@@ -144,7 +144,7 @@ export default function branchAndBound(weights, values, capacity) {
     nodes.push(rightNode);
   }
 
-  // Backtrack to mark the best path
+  
   let current = nodes.find(n => n.id === bestNodeId);
   const selectedItems = current ? current.items : [];
   

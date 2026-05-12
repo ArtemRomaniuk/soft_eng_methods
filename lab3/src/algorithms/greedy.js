@@ -10,7 +10,7 @@ export default function greedy(weights, values, capacity) {
     });
   }
 
-  // Sort by ratio descending
+  
   const sortedItems = [...items].sort((a, b) => b.ratio - a.ratio);
 
   let currentWeight = 0;

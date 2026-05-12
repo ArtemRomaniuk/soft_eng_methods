@@ -76,7 +76,7 @@ body {
   animation: fadeIn var(--transition-normal);
 }
 
-/* Visualization Panel */
+
 .visualization-panel {
   display: flex;
   flex-direction: column;
@@ -115,7 +115,7 @@ body {
   }
 }
 
-/* Scrollbar styling */
+
 ::-webkit-scrollbar {
   width: 8px;
 }
