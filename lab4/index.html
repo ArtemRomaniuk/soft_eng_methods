@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Апроксимація функцій - Лаб 4.1</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Math.js for matrix operations and QR decomposition -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.8.0/math.js"></script>
+    <!-- D3.js for visualization -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Апроксимація функцій</h1>
+            <p>Методи інтерполяції (Лагранж, Ньютон) та МНК</p>
+        </header>
+
+        <main>
+            <section class="controls">
+                <div class="card">
+                    <h3>Вхідні дані</h3>
+                    <div class="input-group">
+                        <label for="points-input">Точки (x, y через кому, по одній парі на рядок):</label>
+                        <textarea id="points-input" rows="6" placeholder="0, 1
+1, 3
+2, 2
+3, 5
+4, 4"></textarea>
+                    </div>
+                    <div class="button-group">
+                        <button id="apply-points">Застосувати дані</button>
+                        <button id="random-points">Випадкові дані</button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Налаштування методів</h3>
+                    <div class="method-select">
+                        <label>Режим відображення:</label>
+                        <select id="mode-select">
+                            <option value="interpolation">Інтерполяція</option>
+                            <option value="lsm">МНК</option>
+                            <option value="all">Усі методи</option>
+                        </select>
+                    </div>
+
+                    <div id="lsm-settings" class="settings-group">
+                        <label>Ступінь полінома МНК (m):</label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="lsm-degree" value="2" checked> 2</label>
+                            <label><input type="radio" name="lsm-degree" value="3"> 3</label>
+                            <label><input type="radio" name="lsm-degree" value="4"> 4</label>
+                        </div>
+                    </div>
+                    
+                    <div class="animation-control">
+                        <button id="run-animation">Запустити анімацію</button>
+                    </div>
+                </div>
+
+                <div class="card metrics">
+                    <h3>Метрики якості (МНК)</h3>
+                    <div id="metrics-display">
+                        <p>RMSE: <span id="rmse-val">-</span></p>
+                        <p>R²: <span id="r2-val">-</span></p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="visualization">
+                <div id="chart"></div>
+                <div id="legend"></div>
+            </section>
+        </main>
+    </div>
+
+    <script src="math_engine.js"></script>
+    <script src="renderer.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
