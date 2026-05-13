@@ -73,19 +73,34 @@ export default function Chart({ points, mode, lsmDegree, lsmCoefficients, isAnim
         const renderCurve = (name, methodFunc, colorClass, animated = false) => {
             if (points.length < 2) return;
             const curvePoints = [];
-            const step = (xScale.domain()[1] - xScale.domain()[0]) / 200;
-            for (let x = xScale.domain()[0]; x <= xScale.domain()[1]; x += step) curvePoints.push({ x: x, y: methodFunc(x) });
-            const line = d3.line().x(d => xScale(d.x)).y(d => yScale(d.y));
-            const path = g.select(".paths-group").append("path").datum(curvePoints).attr("class", `${colorClass} ${name}-path`).attr("d", line);
+            const xDomain = xScale.domain();
+            const step = (xDomain[1] - xDomain[0]) / 200;
+            for (let x = xDomain[0]; x <= xDomain[1]; x += step) curvePoints.push({ x: x, y: methodFunc(x) });
+            
+            const line = d3.line()
+                .x(d => xScale(d.x))
+                .y(d => yScale(d.y))
+                .curve(d3.curveMonotoneX);
+
+            const path = g.select(".paths-group").append("path")
+                .datum(curvePoints)
+                .attr("class", `${colorClass} ${name}-path`)
+                .attr("d", line);
+
             if (animated) {
                 const totalLength = path.node().getTotalLength();
-                path.attr("stroke-dasharray", totalLength + " " + totalLength).attr("stroke-dashoffset", totalLength).transition().duration(2000).ease(d3.easeLinear).attr("stroke-dashoffset", 0);
+                path.attr("stroke-dasharray", totalLength + " " + totalLength)
+                    .attr("stroke-dashoffset", totalLength)
+                    .transition()
+                    .duration(name === 'interp' ? 800 : 2000)
+                    .ease(d3.easeLinear)
+                    .attr("stroke-dashoffset", 0);
             }
         };
 
         const newLegendItems = [];
         if (mode === 'interpolation' || mode === 'all') {
-            if (points.length >= 2) renderCurve('interp', (x) => MathEngine.newton(points, x), 'interp-path', false);
+            if (points.length >= 2) renderCurve('interp', (x) => MathEngine.newton(points, x), 'interp-path', isAnimating);
             newLegendItems.push({ name: 'Інтерполяція (Ньютон)', color: 'var(--interp-color)' });
         }
         if (mode === 'lsm' || mode === 'all') {
