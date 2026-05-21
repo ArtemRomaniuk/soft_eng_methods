@@ -1,184 +1,191 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
+import styled from "styled-components";
 import Chart from "./components/Chart";
-import { MathEngine } from "./math_engine";
-import "./index.css";
+import ResidualsChart from "./components/ResidualsChart";
+import InputPanel from "./components/InputPanel";
+import MetricsPanel from "./components/MetricsPanel";
 
-function App() {
-  const [pointsText, setPointsText] = useState("0, 1\n1, 3\n2, 2\n3, 5\n4, 4");
-  const [mode, setMode] = useState("interpolation");
-  const [lsmDegree, setLsmDegree] = useState(2);
-  const [animationStep, setAnimationStep] = useState(0);
-  const [isAnimating, setIsAnimating] = useState(false);
+const AppContainer = styled.div`
+  min-height: 100vh;
+  background: #121212;
+  color: #e0e0e0;
+  padding: 40px;
+  font-family:
+    "Inter",
+    -apple-system,
+    system-ui,
+    sans-serif;
+`;
+
+const Header = styled.header`
+  margin-bottom: 40px;
+  text-align: left;
+  max-width: 1400px;
+  margin-left: auto;
+  margin-right: auto;
+`;
+
+const Title = styled.h1`
+  margin: 0;
+  font-weight: 700;
+  font-size: 2.5rem;
+  color: #1e90ff;
+`;
+
+const Layout = styled.main`
+  display: grid;
+  grid-template-columns: 350px 1fr;
+  gap: 30px;
+  max-width: 1400px;
+  margin: 0 auto;
+
+  @media (max-width: 1100px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const Sidebar = styled.aside`
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+`;
+
+const VisualizationArea = styled.section`
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+`;
+
+const PRESETS = {
+  5: [
+    { x: 1, y: 1.0 },
+    { x: 2, y: 4.0 },
+    { x: 3, y: 9.0 },
+    { x: 4, y: 16.0 },
+    { x: 5, y: 25.0 },
+  ],
+  10: [
+    { x: 0, y: 1 },
+    { x: 1, y: 2 },
+    { x: 2, y: 4 },
+    { x: 3, y: 7 },
+    { x: 4, y: 11 },
+    { x: 5, y: 16 },
+    { x: 6, y: 22 },
+    { x: 7, y: 29 },
+    { x: 8, y: 37 },
+  ],
+  20: [
+    { x: 0, y: 1.5 },
+    { x: 0.5, y: 1.8 },
+    { x: 1, y: 2.5 },
+    { x: 1.5, y: 3.6 },
+    { x: 2, y: 5.1 },
+    { x: 2.5, y: 7.0 },
+    { x: 3, y: 9.3 },
+    { x: 3.5, y: 12.0 },
+    { x: 4, y: 15.1 },
+    { x: 4.5, y: 18.6 },
+    { x: 5, y: 22.5 },
+    { x: 5.5, y: 26.8 },
+    { x: 6, y: 31.5 },
+    { x: 6.5, y: 36.6 },
+    { x: 7, y: 42.1 },
+    { x: 7.5, y: 48.0 },
+    { x: 8, y: 54.3 },
+    { x: 8.5, y: 61.0 },
+    { x: 9, y: 68.1 },
+    { x: 9.5, y: 75.6 },
+  ],
+};
+
+export default function App() {
+  const [pointsCount, setPointsCount] = useState(5);
+  const [customPoints, setCustomPoints] = useState(null);
+  const [showLagrange, setShowLagrange] = useState(true);
+  const [showLS, setShowLS] = useState(true);
+  const [lsDegree, setLsDegree] = useState(2);
+  const [animateKey, setAnimateKey] = useState(0);
 
   const points = useMemo(() => {
-    const lines = pointsText.trim().split("\n");
-    const pts = [];
-    lines.forEach((line) => {
-      const parts = line.split(",").map((p) => parseFloat(p.trim()));
-      if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1]))
-        pts.push({ x: parts[0], y: parts[1] });
-    });
-    return pts.sort((a, b) => a - b);
-  }, [pointsText]);
+    return customPoints || PRESETS[pointsCount] || PRESETS[5];
+  }, [pointsCount, customPoints]);
 
-  const lsmCoefficients = useMemo(() => {
-    if ((mode === "lsm" || mode === "all") && points.length > 0)
-      return MathEngine.lsm(points, lsmDegree);
-    return [];
-  }, [points, mode, lsmDegree]);
-
-  const metrics = useMemo(() => {
-    if ((mode === "lsm" || mode === "all") && points.length > 0)
-      return MathEngine.calculateMetrics(points, lsmCoefficients);
-    return { rmse: 0, r2: 0 };
-  }, [points, lsmCoefficients, mode]);
-
-  const handleRandomData = () => {
-    let str = "";
-    for (let i = 0; i < 6; i++)
-      str += `${i}, ${(Math.random() * 10).toFixed(2)}\n`;
-    setPointsText(str.trim());
-    setIsAnimating(false);
+  const handlePresetChange = (n) => {
+    setPointsCount(n);
+    setCustomPoints(null);
+    setAnimateKey((prev) => prev + 1);
   };
 
-  const handleRunAnimation = () => {
-    setIsAnimating(true);
-    setAnimationStep(1);
-  };
-
-  useEffect(() => {
-    if (isAnimating && (mode === "interpolation" || mode === "all")) {
-      if (animationStep <= points.length) {
-        const timer = setTimeout(
-          () => setAnimationStep((prev) => prev + 1),
-          800,
-        );
-        return () => clearTimeout(timer);
-      } else setIsAnimating(false);
-    } else if (isAnimating && mode === "lsm") {
-      const timer = setTimeout(() => setIsAnimating(false), 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [isAnimating, animationStep, points.length, mode]);
-
-  const displayedPoints =
-    isAnimating &&
-    (mode === "interpolation" || mode === "all") &&
-    animationStep > 0
-      ? points.slice(0, Math.min(animationStep, points.length))
-      : points;
+  const triggerAnimation = () => setAnimateKey((prev) => prev + 1);
 
   return (
-    <div className="container">
-      <header>
-        <h1>Апроксимація функцій</h1>
-        <p>Методи інтерполяції (Лагранж, Ньютон) та МНК </p>
-      </header>
-      <main>
-        <section className="controls">
-          <div className="card">
-            <h3>Вхідні дані</h3>
-            <div className="input-group">
-              <label htmlFor="points-input">
-                Точки (x, y через кому, по одній парі на рядок):
-              </label>
-              <textarea
-                id="points-input"
-                rows="6"
-                value={pointsText}
-                onChange={(e) => {
-                  setPointsText(e.target.value);
-                  setIsAnimating(false);
-                }}
-              />
-            </div>
-            <div className="button-group">
-              <button id="random-points" onClick={handleRandomData}>
-                Випадкові дані
-              </button>
-            </div>
+    <AppContainer>
+      <Header>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <div>
+            <Title>Lagrange & LSM Analysis</Title>
           </div>
-          <div className="card">
-            <h3>Налаштування методів</h3>
-            <div className="method-select">
-              <label>Режим відображення:</label>
-              <select
-                value={mode}
-                onChange={(e) => {
-                  setMode(e.target.value);
-                  setIsAnimating(false);
-                }}
-              >
-                <option value="interpolation">Інтерполяція</option>
-                <option value="lsm">МНК</option>
-                <option value="all">Усі методи</option>
-              </select>
-            </div>
-            {mode !== "interpolation" && (
-              <div className="settings-group">
-                <label>Ступінь полінома МНК (m):</label>
-                <div className="radio-group">
-                  {[2, 3, 4].map((deg) => (
-                    <label key={deg}>
-                      <input
-                        type="radio"
-                        name="lsm-degree"
-                        value={deg}
-                        checked={lsmDegree === deg}
-                        onChange={() => {
-                          setLsmDegree(deg);
-                          setIsAnimating(false);
-                        }}
-                      />{" "}
-                      {deg}
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-            <div className="animation-control">
-              <button
-                id="run-animation"
-                onClick={handleRunAnimation}
-                disabled={isAnimating || points.length < 2}
-              >
-                {isAnimating ? "Анімація..." : "Запустити анімацію"}
-              </button>
-            </div>
-          </div>
-          <div className="card metrics">
-            <h3>Метрики якості (МНК)</h3>
-            <div id="metrics-display">
-              <p>
-                RMSE:{" "}
-                <span>
-                  {mode !== "interpolation" && metrics.rmse
-                    ? metrics.rmse.toFixed(4)
-                    : "-"}
-                </span>
-              </p>
-              <p>
-                R²:{" "}
-                <span>
-                  {mode !== "interpolation" && metrics.r2
-                    ? metrics.r2.toFixed(4)
-                    : "-"}
-                </span>
-              </p>
-            </div>
-          </div>
-        </section>
-        <section className="visualization">
-          <Chart
-            points={displayedPoints}
-            mode={mode}
-            lsmDegree={lsmDegree}
-            lsmCoefficients={lsmCoefficients}
-            isAnimating={isAnimating}
+          <button
+            onClick={triggerAnimation}
+            style={{
+              padding: "12px 24px",
+              background: "#1e90ff",
+              border: "none",
+              borderRadius: "6px",
+              color: "white",
+              fontWeight: "bold",
+              cursor: "pointer",
+              boxShadow: "0 4px 15px rgba(30, 144, 255, 0.3)",
+            }}
+          >
+            RUN ANIMATION
+          </button>
+        </div>
+      </Header>
+
+      <Layout>
+        <Sidebar>
+          <InputPanel
+            pointsCount={pointsCount}
+            setPointsCount={handlePresetChange}
+            points={points}
+            setCustomPoints={setCustomPoints}
+            showLagrange={showLagrange}
+            setShowLagrange={setShowLagrange}
+            showLS={showLS}
+            setShowLS={setShowLS}
+            lsDegree={lsDegree}
+            setLsDegree={setLsDegree}
           />
-        </section>
-      </main>
-    </div>
+          <MetricsPanel points={points} lsDegree={lsDegree} />
+        </Sidebar>
+
+        <VisualizationArea>
+          <Chart
+            key={`chart-${animateKey}`}
+            points={points}
+            showLagrange={showLagrange}
+            showLS={showLS}
+            lsDegree={lsDegree}
+            animate={true}
+          />
+          <ResidualsChart
+            key={`res-${animateKey}`}
+            points={points}
+            showLagrange={showLagrange}
+            showLS={showLS}
+            lsDegree={lsDegree}
+            animate={true}
+          />
+        </VisualizationArea>
+      </Layout>
+    </AppContainer>
   );
 }
-export default App;

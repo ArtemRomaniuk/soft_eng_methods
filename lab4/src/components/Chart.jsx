@@ -1,131 +1,193 @@
-import { useEffect, useRef, useState } from 'react';
-import * as d3 from 'd3';
-import { MathEngine } from '../math_engine';
+import { useMemo, useRef, useEffect } from "react";
+import * as d3 from "d3";
+import styled from "styled-components";
+import { getLagrangeFunc } from "../utils/lagrange";
+import { getLSFunc } from "../utils/ls";
 
-export default function Chart({ points, mode, lsmDegree, lsmCoefficients, isAnimating }) {
-    const containerRef = useRef(null);
-    const svgRef = useRef(null);
-    const [legendItems, setLegendItems] = useState([]);
+const ChartContainer = styled.div`
+  width: 100%;
+  height: 500px;
+  background: #1a1a1a;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+`;
 
-    useEffect(() => {
-        if (!containerRef.current) return;
-        const margin = { top: 40, right: 40, bottom: 50, left: 60 };
-        const width = containerRef.current.clientWidth - margin.left - margin.right;
-        const height = containerRef.current.clientHeight - margin.top - margin.bottom;
-        d3.select(containerRef.current).select("svg").remove();
-        const svg = d3.select(containerRef.current)
-            .append("svg")
-            .attr("width", width + margin.left + margin.right)
-            .attr("height", height + margin.top + margin.bottom);
-        const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
-        g.append("g").attr("class", "grid");
-        g.append("g").attr("class", "residuals-group");
-        g.append("g").attr("class", "paths-group");
-        g.append("g").attr("class", "points-group");
-        g.append("g").attr("class", "x-axis");
-        g.append("g").attr("class", "y-axis");
-        svg.append("text").attr("class", "axis-label").attr("text-anchor", "middle").attr("x", (width + margin.left + margin.right) / 2).attr("y", height + margin.top + margin.bottom - 10).text("X");
-        svg.append("text").attr("class", "axis-label").attr("text-anchor", "middle").attr("transform", "rotate(-90)").attr("x", -(height + margin.top + margin.bottom) / 2).attr("y", 15).text("Y");
-        svgRef.current = { svg, g, width, height };
-        let tooltip = d3.select("body").select(".tooltip");
-        if (tooltip.empty()) tooltip = d3.select("body").append("div").attr("class", "tooltip");
-        svgRef.current.tooltip = tooltip;
-        return () => {
-            d3.select(containerRef.current).select("svg").remove();
-            d3.select("body").select(".tooltip").remove();
-        };
-    }, []);
+const StyledSvg = styled.svg`
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+`;
 
-    useEffect(() => {
-        if (!svgRef.current || points.length === 0) {
-            if (svgRef.current) {
-                 svgRef.current.g.select(".paths-group").selectAll("path").remove();
-                 svgRef.current.g.select(".residuals-group").selectAll("line").remove();
-                 svgRef.current.g.select(".points-group").selectAll(".point").remove();
-            }
-            setLegendItems([]);
-            return;
-        }
-        const { g, width, height, tooltip } = svgRef.current;
-        const xExtent = d3.extent(points, d => d.x);
-        const yExtent = d3.extent(points, d => d.y);
-        const xRange = xExtent[1] - xExtent[0] || 1;
-        const yRange = yExtent[1] - yExtent[0] || 1;
-        const xScale = d3.scaleLinear().domain([xExtent[0] - xRange * 0.1, xExtent[1] + xRange * 0.1]).range([0, width]);
-        const yScale = d3.scaleLinear().domain([yExtent[0] - yRange * 0.1, yExtent[1] + yRange * 0.1]).range([height, 0]);
-        const xAxis = d3.axisBottom(xScale).ticks(10).tickSize(-height);
-        const yAxis = d3.axisLeft(yScale).ticks(10).tickSize(-width);
-        g.select(".x-axis").attr("transform", `translate(0,${height})`).call(d3.axisBottom(xScale));
-        g.select(".y-axis").call(d3.axisLeft(yScale));
-        g.select(".grid").call(xAxis).selectAll("text").remove();
-        g.select(".grid").call(yAxis).selectAll("text").remove();
-        g.selectAll(".grid line").attr("stroke", "#f1f5f9");
-        g.select(".paths-group").selectAll("path").remove();
-        g.select(".residuals-group").selectAll("line").remove();
-        const dots = g.select(".points-group").selectAll(".point").data(points, d => d.x + "-" + d.y);
-        dots.enter().append("circle").attr("class", "point").merge(dots).attr("cx", d => xScale(d.x)).attr("cy", d => yScale(d.y)).attr("r", 5)
-            .on("mouseover", (event, d) => {
-                tooltip.transition().duration(200).style("opacity", .9);
-                tooltip.html(`x: ${d.x.toFixed(2)}<br/>y: ${d.y.toFixed(2)}`).style("left", (event.pageX + 10) + "px").style("top", (event.pageY - 28) + "px");
-            }).on("mouseout", () => tooltip.transition().duration(500).style("opacity", 0));
-        dots.exit().remove();
+export default function Chart({
+  points,
+  showLagrange,
+  showLS,
+  lsDegree = 2,
+  animate = false,
+}) {
+  const svgRef = useRef();
+  const margin = { top: 20, right: 30, bottom: 40, left: 50 };
 
-        const renderCurve = (name, methodFunc, colorClass, animated = false) => {
-            if (points.length < 2) return;
-            const curvePoints = [];
-            const xDomain = xScale.domain();
-            const step = (xDomain[1] - xDomain[0]) / 200;
-            for (let x = xDomain[0]; x <= xDomain[1]; x += step) curvePoints.push({ x: x, y: methodFunc(x) });
-            
-            const line = d3.line()
-                .x(d => xScale(d.x))
-                .y(d => yScale(d.y))
-                .curve(d3.curveMonotoneX);
+  const { lagrangeData, lsData, xDomain, yDomain } = useMemo(() => {
+    if (!points || points.length === 0)
+      return {
+        lagrangeData: [],
+        lsData: [],
+        xDomain: [0, 10],
+        yDomain: [0, 10],
+      };
 
-            const path = g.select(".paths-group").append("path")
-                .datum(curvePoints)
-                .attr("class", `${colorClass} ${name}-path`)
-                .attr("d", line);
+    const xMin = d3.min(points, (d) => d.x);
+    const xMax = d3.max(points, (d) => d.x);
+    const xRange = xMax - xMin;
+    const paddingX = xRange * 0.1 || 1;
 
-            if (animated) {
-                const totalLength = path.node().getTotalLength();
-                path.attr("stroke-dasharray", totalLength + " " + totalLength)
-                    .attr("stroke-dashoffset", totalLength)
-                    .transition()
-                    .duration(name === 'interp' ? 800 : 2000)
-                    .ease(d3.easeLinear)
-                    .attr("stroke-dashoffset", 0);
-            }
-        };
+    const samples = 200;
+    const lFunc = getLagrangeFunc(points);
+    const sFunc = getLSFunc(points, lsDegree);
 
-        const newLegendItems = [];
-        if (mode === 'interpolation' || mode === 'all') {
-            if (points.length >= 2) renderCurve('interp', (x) => MathEngine.newton(points, x), 'interp-path', isAnimating);
-            newLegendItems.push({ name: 'Інтерполяція (Ньютон)', color: 'var(--interp-color)' });
-        }
-        if (mode === 'lsm' || mode === 'all') {
-            if (points.length >= 2 && lsmCoefficients.length > 0) {
-                const lsmFunc = (x) => MathEngine.evaluateLSM(lsmCoefficients, x);
-                renderCurve('lsm', lsmFunc, 'lsm-path', isAnimating);
-                const residuals = g.select(".residuals-group").selectAll(".residual-line").data(points);
-                const lines = residuals.enter().append("line").attr("class", "residual-line").merge(residuals).attr("x1", d => xScale(d.x)).attr("y1", d => yScale(d.y)).attr("x2", d => xScale(d.x)).attr("y2", d => yScale(lsmFunc(d.x)));
-                if (isAnimating) lines.attr("opacity", 0).transition().delay((d, i) => i * 100).duration(500).attr("opacity", 1);
-                else lines.attr("opacity", 1);
-                residuals.exit().remove();
-            }
-            newLegendItems.push({ name: `МНК (ступінь ${lsmDegree})`, color: 'var(--lsm-color)' });
-        }
-        setLegendItems(newLegendItems);
-    }, [points, mode, lsmDegree, lsmCoefficients, isAnimating]);
+    const lData = [];
+    const sData = [];
 
-    return (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-            <div ref={containerRef} id="chart" style={{ width: '100%', height: '500px', position: 'relative' }}></div>
-            <div id="legend">
-                {legendItems.map((item, idx) => (
-                    <div key={idx} className="legend-item"><div className="legend-color" style={{ backgroundColor: item.color }}></div><span>{item.name}</span></div>
-                ))}
-            </div>
-        </div>
-    );
+    const step = (xMax - xMin) / (samples - 1);
+    for (let i = 0; i < samples; i++) {
+      const x = xMin + i * step;
+      lData.push({ x, y: lFunc(x) });
+      sData.push({ x, y: sFunc(x) });
+    }
+
+    const allY = [...points.map((p) => p.y)];
+    if (showLagrange) allY.push(...lData.map((d) => d.y));
+    if (showLS) allY.push(...sData.map((d) => d.y));
+
+    const yMin = d3.min(allY);
+    const yMax = d3.max(allY);
+    const yRange = yMax - yMin;
+    const paddingY = yRange * 0.1 || 1;
+
+    return {
+      lagrangeData: lData,
+      lsData: sData,
+      xDomain: [xMin - paddingX, xMax + paddingX],
+      yDomain: [yMin - paddingY, yMax + paddingY],
+    };
+  }, [points, showLagrange, showLS, lsDegree]);
+
+  useEffect(() => {
+    if (!svgRef.current || !points) return;
+
+    const svg = d3.select(svgRef.current);
+    const width = svgRef.current.clientWidth - margin.left - margin.right;
+    const height = svgRef.current.clientHeight - margin.top - margin.bottom;
+
+    svg.selectAll("*").remove();
+
+    const g = svg
+      .append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    const x = d3.scaleLinear().domain(xDomain).range([0, width]);
+    const y = d3.scaleLinear().domain(yDomain).range([height, 0]);
+
+    g.append("g")
+      .attr("transform", `translate(0,${height})`)
+      .call(d3.axisBottom(x).ticks(10).tickSize(-height).tickPadding(10))
+      .attr("color", "#444")
+      .selectAll("text")
+      .attr("color", "#888");
+
+    g.append("g")
+      .call(d3.axisLeft(y).ticks(10).tickSize(-width).tickPadding(10))
+      .attr("color", "#444")
+      .selectAll("text")
+      .attr("color", "#888");
+
+    const line = d3
+      .line()
+      .x((d) => x(d.x))
+      .y((d) => y(d.y))
+      .curve(d3.curveMonotoneX);
+
+    const duration = 2000;
+
+    if (showLagrange) {
+      const lPath = g
+        .append("path")
+        .datum(lagrangeData)
+        .attr("fill", "none")
+        .attr("stroke", "#ff4757")
+        .attr("stroke-width", 2)
+        .attr("d", line);
+
+      if (animate) {
+        const totalLength = lPath.node().getTotalLength();
+        lPath
+          .attr("stroke-dasharray", totalLength + " " + totalLength)
+          .attr("stroke-dashoffset", totalLength)
+          .transition()
+          .duration(duration)
+          .ease(d3.easeLinear)
+          .attr("stroke-dashoffset", 0);
+      }
+    }
+
+    if (showLS) {
+      const sPath = g
+        .append("path")
+        .datum(lsData)
+        .attr("fill", "none")
+        .attr("stroke", "#2ed573")
+        .attr("stroke-width", 2)
+        .attr("d", line);
+
+      if (animate) {
+        const totalLength = sPath.node().getTotalLength();
+        sPath
+          .attr("stroke-dasharray", totalLength)
+          .attr("stroke-dashoffset", totalLength)
+          .transition()
+          .duration(duration)
+          .ease(d3.easeLinear)
+          .attr("stroke-dashoffset", 0)
+          .on("end", () => {
+            sPath.attr("stroke-dasharray", "5,5");
+          });
+      } else {
+        sPath.attr("stroke-dasharray", "5,5");
+      }
+    }
+
+    const dots = g.selectAll(".dot").data(points);
+    dots
+      .enter()
+      .append("circle")
+      .attr("class", "dot")
+      .attr("cx", (d) => x(d.x))
+      .attr("cy", (d) => y(d.y))
+      .attr("r", 0)
+      .attr("fill", "#1e90ff")
+      .attr("stroke", "#fff")
+      .attr("stroke-width", 1.5)
+      .transition()
+      .delay((d, i) => (animate ? i * (duration / points.length) : 0))
+      .duration(500)
+      .attr("r", 5);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    points,
+    lagrangeData,
+    lsData,
+    xDomain,
+    yDomain,
+    showLagrange,
+    showLS,
+    animate,
+  ]);
+
+  return (
+    <ChartContainer>
+      <StyledSvg ref={svgRef} />
+    </ChartContainer>
+  );
 }
